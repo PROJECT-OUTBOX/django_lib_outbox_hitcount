@@ -85,6 +85,10 @@ setup(
     # dependencies
     install_requires=[
         'django-hitcount',        
+        'httpagentparser',
+        'pytz',
+        'requests',
+        #'incremental',
     ],
 
     # agar file manifest .in dieksekusi

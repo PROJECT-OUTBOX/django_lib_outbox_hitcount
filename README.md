@@ -12,7 +12,7 @@ All you need to do is:
 ### Add to INSTALLED_APPS
     INSTALLED_APPS = [        
         'django.contrib.sites', 
-        'outbox-hitcount',
+        'outbox_hitcount',
     ]
 
 ### Add SITE_ID in user settings.py
@@ -20,8 +20,8 @@ All you need to do is:
     
     # This setting just like django-hitcount library
     HITCOUNT_KEEP_HIT_ACTIVE = { 'hours': 1 }
-    HITCOUNT_HITS_PER_IP_LIMIT = 0  # unlimited
-    HITCOUNT_EXCLUDE_USER_GROUP = ()  # not used
+    # HITCOUNT_HITS_PER_IP_LIMIT = 0  # unlimited
+    # HITCOUNT_EXCLUDE_USER_GROUP = ()  # not used
     HITCOUNT_KEEP_HIT_IN_DATABASE = { 'days': 90 } 
 
 ### Install requirements
