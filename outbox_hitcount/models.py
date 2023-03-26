@@ -9,8 +9,8 @@ class HitLocation(models.Model):
         Cek location unique, do not duplicate value in name
         192.168.13.29
     '''
-    country = models.CharField(max_length=50, default=None)
-    city = models.CharField(max_length=50, default=None)
+    country = models.CharField(max_length=50, default=None, null=True)
+    city = models.CharField(max_length=50, default=None, null=True)
     ip_address = models.CharField(max_length=20)
     created_at = models.DateTimeField(auto_now_add=True)
     updated_at = models.DateTimeField(auto_now=True)
