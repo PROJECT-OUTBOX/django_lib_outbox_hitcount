@@ -17,7 +17,8 @@ All you need to do is:
 
 ### Add SITE_ID in user settings.py
     SITE_ID = 1
-    
+    USE_TZ = True    # set time zone True
+
     # This setting just like django-hitcount library
     HITCOUNT_KEEP_HIT_ACTIVE = { 'hours': 1 }
     # HITCOUNT_HITS_PER_IP_LIMIT = 0  # unlimited

@@ -177,6 +177,52 @@ def hitcount_insert_m2m_field(hit_count, browser, os, platform, ip_address):    
 
     # hit_count.save()
 
+def special_condition(object_pk):
+    '''
+        Special condition:
+        if site_id exists
+            but object_pk not found, search on other model
+            update hitcount for all model
+    '''
+    # jika di model yg aktif tidak ada
+    model_priority = ['artikel', 'berita', 'galery_video', 'galery_foto', 'halaman_statis', 'link_terkait', 'pengumuman', 'social_media']
+
+    for i in model_priority:
+        ct = ContentType.objects.filter(model=i)
+        if ct:
+            ct_class = ct.get().model_class()
+            if is_field_exists(ct_class, 'site'):
+                obj = ct_class.objects.filter(id=object_pk) # cari site_id dari model
+                site_id = None
+                if obj:                    
+                    site_id = obj.get().site_id
+
+                    if site_id:
+                        site = Site.objects.filter(id=site_id) # cari nama site dari site_id yg di dapat
+                        if site:
+                            site = site.get()
+                            content_type_site = ContentType.objects.get_for_model(site)
+
+                            hit_count, created = HitCount.objects.get_or_create(
+                                content_type=content_type_site, 
+                                object_pk=site_id,
+                                defaults={'end_date': end_date, 'site_id': site_id}
+                            )
+                            hit_count.count += 1
+                            
+                            # hit_count.update(count=F(count)+1)
+
+                            data = {
+                                'hit_count': hit_count,
+                                'browser': browser,
+                                'os': os,
+                                'platform': platform,
+                                'ip_address': ip_address
+                            }
+                            hitcount_insert_m2m_field(**data)
+                            hit_count.save()        
+                    
+
 @transaction.atomic
 def do_summary(qs, end_date):
     j=0
@@ -200,7 +246,7 @@ def do_summary(qs, end_date):
         content_type = i.hitcount.content_type
         content_type_id = content_type.id        
         j+=1
-        print(int(j), 'of', int(count), ':object_pk', object_pk, ';model', content_type.model)
+        print(int(j), 'of', int(count), ':object_pk', object_pk, 'model', content_type.model, 'hitcount_id', i.hitcount.id)
         site_id = None
 
         # dari content type ubah mejadi object
@@ -227,19 +273,22 @@ def do_summary(qs, end_date):
             # print('ct_class=', ct_class)
             
             # print('obj=', obj)
-
-            
-
-            # cek apakah ada field site ID            
+            #             
+            # cek apakah ada field site ID    
+            mfound = False        
             if is_field_exists(ct_class, 'site'):
                 obj = ct_class.objects.filter(id=object_pk) # cari site_id dari model
                 if obj:                    
                     site_id = obj.get().site_id
                     print('site_id', site_id)
+                    mfound = True
                 else:
                     print('site_id', object_pk, 'tidak ditemukan!')
             else:
                 print('site_id tidak ditemukan di model')
+
+            if not mfound:
+                special_condition(object_pk)
 
         # 1. jika ada field site_id, maka insert summary baru content_type = site
         if site_id:
@@ -272,7 +321,7 @@ def do_summary(qs, end_date):
         hit_count, created = HitCount.objects.get_or_create(
             content_type=content_type,  # data sudah ada di paling atas
             object_pk=object_pk,
-            defaults={'end_date': end_date, 'site_id': site_id}
+            defaults={'end_date': end_date, 'site_id': site_id if site_id > 0 else None}
         )
         hit_count.count += 1
         # hit_count.save()

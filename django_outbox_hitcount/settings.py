@@ -129,8 +129,8 @@ STATIC_URL = 'static/'
 DEFAULT_AUTO_FIELD = 'django.db.models.BigAutoField'
 
 HITCOUNT_KEEP_HIT_ACTIVE = { 'hours': 1 } # {'minutes': 60}
-HITCOUNT_HITS_PER_IP_LIMIT = 0  # unlimited
-HITCOUNT_EXCLUDE_USER_GROUP = ()  # not used
+# HITCOUNT_HITS_PER_IP_LIMIT = 0  # unlimited
+# HITCOUNT_EXCLUDE_USER_GROUP = ()  # not used
 HITCOUNT_KEEP_HIT_IN_DATABASE = { 'days': 90 }  # {'seconds': 10}   tadinya 60, jadi 90 untuk spare 1 bulan data sebelum di hapus
 
 SITE_ID = 1
