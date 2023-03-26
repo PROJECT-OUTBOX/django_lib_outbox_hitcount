@@ -90,10 +90,15 @@ def is_field_exists(model, field):
     # return False
     if model:
         try:
-            field = model._meta.get_field(field)
-            return True
+            # field = model._meta.get_field(field)
+            for i in model._meta.get_fields():
+                if (not i.many_to_many) and  (i.name==field):
+                    return True
+
         except FieldDoesNotExist:
             return False
+
+        # return False    # tidak ada error, tapi data tidak ditemukan
     return False
 
 # def get_for_object(obj, end_date):
@@ -190,7 +195,7 @@ def special_condition(object_pk, end_date, data):
     model_priority = ['artikel', 'berita', 'galery_video', 'galery_foto', 'halaman_statis', 'pengumuman', 'social_media'] # 'link_terkait', 
 
     for i in model_priority:
-        print('proses', i)
+        # print('proses', i)
         ct = ContentType.objects.filter(model=i)
         if ct:
             ct_class = ct.get().model_class()
@@ -250,7 +255,7 @@ def do_summary(qs, end_date):
         content_type = i.hitcount.content_type
         content_type_id = content_type.id        
         j+=1
-        print(int(j), 'of', int(count), ':object_pk', object_pk, 'model', content_type.model, 'hitcount_id', i.hitcount.id)
+        print(int(j), 'of', int(count), 'object_pk', object_pk, 'model', content_type.model, 'hitcount_id', i.hitcount.id)
         site_id = None
 
         # dari content type ubah mejadi object
@@ -271,7 +276,7 @@ def do_summary(qs, end_date):
         # Jika ct_class tidak ada berarti model tersebut tidak di temukan di project
         # misal galery_video
         if ct_class:
-            print(ct_class._meta.get_fields())
+            # print(ct_class._meta.get_fields())
 
             # obj = ct.get_object_for_this_type(id=object_pk)
             # print('ct_class=', ct_class)
