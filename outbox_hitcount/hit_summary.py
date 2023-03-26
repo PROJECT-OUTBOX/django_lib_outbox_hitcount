@@ -177,7 +177,7 @@ def hitcount_insert_m2m_field(hit_count, browser, os, platform, ip_address):    
 
     # hit_count.save()
 
-def special_condition(object_pk):
+def special_condition(object_pk, end_date):
     '''
         Special condition:
         if site_id exists
@@ -288,7 +288,7 @@ def do_summary(qs, end_date):
                 print('site_id tidak ditemukan di model')
 
             if not mfound:
-                special_condition(object_pk)
+                special_condition(object_pk, end_date)
 
         # 1. jika ada field site_id, maka insert summary baru content_type = site
         if site_id:
