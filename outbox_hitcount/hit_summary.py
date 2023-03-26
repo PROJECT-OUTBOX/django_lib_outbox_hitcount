@@ -88,11 +88,13 @@ def is_field_exists(model, field):
     #     if field.name == field:
     #         return True
     # return False
-    try:
-        field = model._meta.get_field(field)
-        return True
-    except FieldDoesNotExist:
-        return False
+    if model:
+        try:
+            field = model._meta.get_field(field)
+            return True
+        except FieldDoesNotExist:
+            return False
+    return False
 
 # def get_for_object(obj, end_date):
 #     ctype = ContentType.objects.get_for_model(obj)    
@@ -177,7 +179,7 @@ def hitcount_insert_m2m_field(hit_count, browser, os, platform, ip_address):    
 
     # hit_count.save()
 
-def special_condition(object_pk, end_date):
+def special_condition(object_pk, end_date, data):
     '''
         Special condition:
         if site_id exists
@@ -188,6 +190,7 @@ def special_condition(object_pk, end_date):
     model_priority = ['artikel', 'berita', 'galery_video', 'galery_foto', 'halaman_statis', 'link_terkait', 'pengumuman', 'social_media']
 
     for i in model_priority:
+        print('proses', i)
         ct = ContentType.objects.filter(model=i)
         if ct:
             ct_class = ct.get().model_class()
@@ -214,13 +217,14 @@ def special_condition(object_pk, end_date):
 
                             data = {
                                 'hit_count': hit_count,
-                                'browser': browser,
-                                'os': os,
-                                'platform': platform,
-                                'ip_address': ip_address
+                                'browser': data['browser'],
+                                'os': data['os'],
+                                'platform': data['platform'],
+                                'ip_address': data['ip_address']
                             }
                             hitcount_insert_m2m_field(**data)
                             hit_count.save()        
+                            print('proses', i, 'saved')
                     
 
 @transaction.atomic
@@ -288,7 +292,15 @@ def do_summary(qs, end_date):
                 print('site_id tidak ditemukan di model')
 
             if not mfound:
-                special_condition(object_pk, end_date)
+                data = {
+                    'hit_count': None,
+                    'browser': browser,
+                    'os': os,
+                    'platform': platform,
+                    'ip_address': ip_address
+                }
+
+                special_condition(object_pk, end_date, data)
 
         # 1. jika ada field site_id, maka insert summary baru content_type = site
         if site_id:
@@ -318,11 +330,19 @@ def do_summary(qs, end_date):
 
         # 2. default insert content_type dari apa adanya data di Hit
         # content_type = ContentType.objects.get_for_model(i)
-        hit_count, created = HitCount.objects.get_or_create(
-            content_type=content_type,  # data sudah ada di paling atas
-            object_pk=object_pk,
-            defaults={'end_date': end_date, 'site_id': site_id if site_id > 0 else None}
-        )
+        if site_id:
+            hit_count, created = HitCount.objects.get_or_create(
+                content_type=content_type,  # data sudah ada di paling atas
+                object_pk=object_pk,
+                defaults={'end_date': end_date, 'site_id': site_id}
+            )
+        else:
+            hit_count, created = HitCount.objects.get_or_create(
+                content_type=content_type,  # data sudah ada di paling atas
+                object_pk=object_pk,
+                defaults={'end_date': end_date, 'site_id': None}
+            )
+
         hit_count.count += 1
         # hit_count.save()
         # hit_count.update(count=F(count)+1)
