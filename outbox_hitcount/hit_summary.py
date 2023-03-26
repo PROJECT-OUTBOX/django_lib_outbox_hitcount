@@ -187,7 +187,7 @@ def special_condition(object_pk, end_date, data):
             update hitcount for all model
     '''
     # jika di model yg aktif tidak ada
-    model_priority = ['artikel', 'berita', 'galery_video', 'galery_foto', 'halaman_statis', 'link_terkait', 'pengumuman', 'social_media']
+    model_priority = ['artikel', 'berita', 'galery_video', 'galery_foto', 'halaman_statis', 'pengumuman', 'social_media'] # 'link_terkait', 
 
     for i in model_priority:
         print('proses', i)
