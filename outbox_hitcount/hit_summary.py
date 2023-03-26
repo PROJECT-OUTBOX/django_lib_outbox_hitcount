@@ -236,131 +236,150 @@ def special_condition(object_pk, end_date, data):
 def do_summary(qs, end_date):
     j=0
     count = qs.count()
-    for i in qs:
-        ip_address = i.ip
-        user_agent = i.user_agent
-        user_agent_parser = httpagentparser.detect(user_agent)
+    # result = False
+    try:
+        for i in qs:
+            ip_address = i.ip
+            user_agent = i.user_agent
+            user_agent_parser = httpagentparser.detect(user_agent)
 
-        platform = user_agent_parser.get('platform')
-        os = user_agent_parser.get('os')
-        # bot = user_agent_parser.get('bot')
-        # dist = user_agent_parser.get('dist')
-        browser = user_agent_parser.get('browser')
+            platform = user_agent_parser.get('platform')
+            os = user_agent_parser.get('os')
+            # bot = user_agent_parser.get('bot')
+            # dist = user_agent_parser.get('dist')
+            browser = user_agent_parser.get('browser')
 
-        # hitcount_id = i.hitcount.id
-        object_pk = i.hitcount.object_pk
-        print('---')
-        # print()
+            # hitcount_id = i.hitcount.id
+            object_pk = i.hitcount.object_pk
+            print('---')
+            # print()
 
-        content_type = i.hitcount.content_type
-        content_type_id = content_type.id        
-        j+=1
-        print(int(j), 'of', int(count), 'object_pk', object_pk, 'model', content_type.model, 'hitcount_id', i.hitcount.id)
-        site_id = None
+            content_type = i.hitcount.content_type
+            content_type_id = content_type.id        
+            j+=1
+            print(int(j), 'of', int(count), 'object_pk', object_pk, 'model', content_type.model, 'hitcount_id', i.hitcount.id)
+            site_id = None
 
-        # dari content type ubah mejadi object
-        # dari object, cek apakah ada field site_id
-        # jika ada ambil PK dari object ini
-        # ct = ContentType.objects.get_for_id(content_type_id)
+            # dari content type ubah mejadi object
+            # dari object, cek apakah ada field site_id
+            # jika ada ambil PK dari object ini
+            # ct = ContentType.objects.get_for_id(content_type_id)
 
-        # print('content type=', content_type)
+            # print('content type=', content_type)
 
-        ct_class = content_type.model_class()
-        
-        # print('ct_class=', ct_class)
-
-        # print('ct=', ct)
-        # ct_class = ct.model_class()
-        # print('ct_class=', ct_class)
-
-        # Jika ct_class tidak ada berarti model tersebut tidak di temukan di project
-        # misal galery_video
-        if ct_class:
-            # print(ct_class._meta.get_fields())
-
-            # obj = ct.get_object_for_this_type(id=object_pk)
-            # print('ct_class=', ct_class)
+            ct_class = content_type.model_class()
             
-            # print('obj=', obj)
-            #             
-            # cek apakah ada field site ID    
-            mfound = False        
-            if is_field_exists(ct_class, 'site'):
-                obj = ct_class.objects.filter(id=object_pk) # cari site_id dari model
-                if obj:                    
-                    site_id = obj.get().site_id
-                    print('site_id', site_id)
-                    mfound = True
+            # print('ct_class=', ct_class)
+
+            # print('ct=', ct)
+            # ct_class = ct.model_class()
+            # print('ct_class=', ct_class)
+
+            # Jika ct_class tidak ada berarti model tersebut tidak di temukan di project
+            # misal galery_video
+            if ct_class:
+                # print(ct_class._meta.get_fields())
+
+                # obj = ct.get_object_for_this_type(id=object_pk)
+                # print('ct_class=', ct_class)
+                
+                # print('obj=', obj)
+                #             
+                # cek apakah ada field site ID    
+                mfound = False        
+                if is_field_exists(ct_class, 'site'):
+                    obj = ct_class.objects.filter(id=object_pk) # cari site_id dari model
+                    if obj:                    
+                        site_id = obj.get().site_id
+                        print('site_id', site_id)
+                        mfound = True
+                    else:
+                        print('site_id', object_pk, 'tidak ditemukan!')
                 else:
-                    print('site_id', object_pk, 'tidak ditemukan!')
-            else:
-                print('site_id tidak ditemukan di model')
+                    print('site_id tidak ditemukan di model')
 
-            if not mfound:
-                data = {
-                    'hit_count': None,
-                    'browser': browser,
-                    'os': os,
-                    'platform': platform,
-                    'ip_address': ip_address
-                }
+                if not mfound:
+                    data = {
+                        'hit_count': None,
+                        'browser': browser,
+                        'os': os,
+                        'platform': platform,
+                        'ip_address': ip_address
+                    }
 
-                special_condition(object_pk, end_date, data)
+                    special_condition(object_pk, end_date, data)
 
-        # 1. jika ada field site_id, maka insert summary baru content_type = site
-        if site_id:
-            site = Site.objects.filter(id=site_id) # cari nama site dari site_id yg di dapat
-            if site:
-                site = site.get()
-                content_type_site = ContentType.objects.get_for_model(site)
+            # 1. jika ada field site_id, maka insert summary baru content_type = site
+            if site_id:
+                site = Site.objects.filter(id=site_id) # cari nama site dari site_id yg di dapat
+                if site:
+                    site = site.get()
+                    content_type_site = ContentType.objects.get_for_model(site)
 
+                    hit_count, created = HitCount.objects.get_or_create(
+                        content_type=content_type_site, 
+                        object_pk=site_id,
+                        defaults={'end_date': end_date, 'site_id': site_id}
+                    )
+                    hit_count.count += 1
+                    
+                    # hit_count.update(count=F(count)+1)
+
+                    data = {
+                        'hit_count': hit_count,
+                        'browser': browser,
+                        'os': os,
+                        'platform': platform,
+                        'ip_address': ip_address
+                    }
+                    hitcount_insert_m2m_field(**data)
+                    hit_count.save()                
+
+            # 2. default insert content_type dari apa adanya data di Hit
+            # content_type = ContentType.objects.get_for_model(i)
+            if site_id:
                 hit_count, created = HitCount.objects.get_or_create(
-                    content_type=content_type_site, 
-                    object_pk=site_id,
+                    content_type=content_type,  # data sudah ada di paling atas
+                    object_pk=object_pk,
                     defaults={'end_date': end_date, 'site_id': site_id}
                 )
-                hit_count.count += 1
-                
-                # hit_count.update(count=F(count)+1)
+            else:
+                hit_count, created = HitCount.objects.get_or_create(
+                    content_type=content_type,  # data sudah ada di paling atas
+                    object_pk=object_pk,
+                    defaults={'end_date': end_date, 'site_id': None}
+                )
 
-                data = {
-                    'hit_count': hit_count,
-                    'browser': browser,
-                    'os': os,
-                    'platform': platform,
-                    'ip_address': ip_address
-                }
-                hitcount_insert_m2m_field(**data)
-                hit_count.save()                
+            hit_count.count += 1
+            # hit_count.save()
+            # hit_count.update(count=F(count)+1)
 
-        # 2. default insert content_type dari apa adanya data di Hit
-        # content_type = ContentType.objects.get_for_model(i)
-        if site_id:
-            hit_count, created = HitCount.objects.get_or_create(
-                content_type=content_type,  # data sudah ada di paling atas
-                object_pk=object_pk,
-                defaults={'end_date': end_date, 'site_id': site_id}
-            )
-        else:
-            hit_count, created = HitCount.objects.get_or_create(
-                content_type=content_type,  # data sudah ada di paling atas
-                object_pk=object_pk,
-                defaults={'end_date': end_date, 'site_id': None}
-            )
+            data = {
+                'hit_count': hit_count,
+                'browser': browser,
+                'os': os,
+                'platform': platform,
+                'ip_address': ip_address
+            }
+            hitcount_insert_m2m_field(**data)
+            hit_count.save()
 
-        hit_count.count += 1
-        # hit_count.save()
-        # hit_count.update(count=F(count)+1)
+        clear_summary_qs(qs)
+    except:
+        print('something goes wrong!')
+        return False
+    
+    return True
 
-        data = {
-            'hit_count': hit_count,
-            'browser': browser,
-            'os': os,
-            'platform': platform,
-            'ip_address': ip_address
-        }
-        hitcount_insert_m2m_field(**data)
-        hit_count.save()
+# @transaction.atomic
+def clear_summary_qs(qs):
+    '''
+        Clear query set yg berhasil di execute
+    '''    
+    number_removed = qs.count()
+    qs.delete()
+    self.stdout.write('Successfully removed %s Hits' % number_removed)
+
 
 def auto_hit_summary(month_count=-1): # proses jumlah bulan, jika -1 maka semua di proses
     '''
@@ -408,11 +427,20 @@ def auto_hit_summary(month_count=-1): # proses jumlah bulan, jika -1 maka semua 
         if not qs:
             mcount -= 1
         else:
-            do_summary(qs, end_date)
+            if do_summary(qs, end_date):
+                # print('Begin clear summary')
+                # clear_summary_qs(qs) # pindahkan di dalam modul do_summary
+                print('Complete')
+            else:
+                return False    # jika do_summary gagal di eksekusi, maka keluar looping
+
+            # else:
+            #     print('Not Complete')
             
             if month_count > 0: month_count -= 1
             if month_count == 0: break
             
+    return True
 
 @transaction.atomic                            
 def auto_get_location(request_per_minute=30, max_data=500):   
