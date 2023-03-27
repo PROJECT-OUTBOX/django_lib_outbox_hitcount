@@ -1,5 +1,7 @@
 import datetime
 
+import pytz
+from django.conf import settings
 from django.contrib.contenttypes.models import ContentType
 from django.core.cache import cache
 from django.shortcuts import render
@@ -15,9 +17,11 @@ def get_statistic(site_id, is_cache=False):
         1 Jam = 60 Menit = 3600 Detik
         24 Jam = 24 * 3600 Detik = 86400 Detik
     '''
-
+    time_zone = getattr(settings, 'TIME_ZONE', 'UTC') # get setting timezone
+    tz = pytz.timezone(time_zone)   
     context = {}
-    tgl = datetime.datetime.now()
+    # tgl = datetime.datetime.now()
+    tgl = timezone.now()
     # Domain = request.get_host()    
     # site_id = get_site_id(request)
 
@@ -64,7 +68,8 @@ def get_statistic(site_id, is_cache=False):
     # jika expired sebelum jam 00:00 kemidan hit count di update ke cache maka satu hari full data akan salah karena masih mengambil data kemarin
     # tgl = waktu sekarang
     tgl00 = tgl + datetime.timedelta(days=1)
-    jam00 = datetime.datetime(tgl00.year, tgl00.month, tgl00.day, 0, 1, 0) # 60 adalah tambahan waktu 1 menit untuk antisipasi kesalahan refresh data ke cache
+    jam00 = datetime.datetime(tgl00.year, tgl00.month, tgl00.day, 0, 1, 0, tzinfo=tz) # 60 adalah tambahan waktu 1 menit untuk antisipasi kesalahan refresh data ke cache
+    # jam00 = tz.localize(jam00)
     timeout = (jam00-tgl00).seconds
     selisih = 0 # untuk pengujung tambahan yg terhitung mulai jam 00:00
 
@@ -88,7 +93,8 @@ def get_statistic(site_id, is_cache=False):
         print('load from DB (' + tmp + ')')
 
         # Abaikan jam, ambil hari ini saja
-        hit_today = Hit.objects.filter(hitcount_id=hitcount_id, created__year=tgl.year, created__month=tgl.month, created__day=tgl.day)
+        # hit_today = Hit.objects.filter(hitcount_id=hitcount_id, created__year=tgl.year, created__month=tgl.month, created__day=tgl.day)
+        hit_today = Hit.objects.filter(hitcount_id=hitcount_id, created__date=tgl.date())
         # print('hit_today',hit_today)
 
         tmp_cache = hit_today.count() if hit_today else 1
@@ -102,7 +108,8 @@ def get_statistic(site_id, is_cache=False):
         # Ini di UPDATE tiap pengujung datang
 
         # Abaikan jam, ambil hari ini saja
-        hit_today = Hit.objects.filter(hitcount_id=hitcount_id, created__year=tgl.year, created__month=tgl.month, created__day=tgl.day)
+        # hit_today = Hit.objects.filter(hitcount_id=hitcount_id, created__year=tgl.year, created__month=tgl.month, created__day=tgl.day)
+        hit_today = Hit.objects.filter(hitcount_id=hitcount_id, created__date=tgl.date)
         # print('hit_today',hit_today)
         context[tmp] = hit_today.count() if hit_today else 1
 
@@ -132,6 +139,8 @@ def get_statistic(site_id, is_cache=False):
         # end_date = datetime.date(tgl.year, tgl.month, tgl.day)
         tmp_cache = Hit.objects.filter(hitcount_id=hitcount_id, \
             created__year=start_date.year, created__month=start_date.month, created__day=start_date.day).count()
+        # tmp_cache = Hit.objects.filter(hitcount_id=hitcount_id, \
+        #     created__date=start_date.date).count()
 
         # save to cache for next time
         cache.set(tmp, tmp_cache, timeout, version=site_id)
@@ -150,6 +159,8 @@ def get_statistic(site_id, is_cache=False):
         print('load from DB (' + tmp + ')')
         # abaikan jam, ambil data dalam 1 minggu
         start_date, end_date = get_week_date(tgl.year, tgl.month, tgl.day)
+        start_date = tz.localize(start_date)
+        end_date = tz.localize(end_date)
         # print(start_date, end_date)
 
         # start_date = tgl + datetime.timedelta(days=-7)
@@ -180,7 +191,9 @@ def get_statistic(site_id, is_cache=False):
         start_date, end_date = get_week_date(tgl.year, tgl.month, tgl.day)
         start_date = start_date + datetime.timedelta(days=-7)
         end_date = end_date + datetime.timedelta(days=-7)
-
+        start_date = tz.localize(start_date)
+        end_date = tz.localize(end_date)
+        
         # print('=', start_date, end_date)
 
         tmp_cache = Hit.objects.filter(hitcount_id=hitcount_id, \
@@ -229,13 +242,14 @@ def get_statistic(site_id, is_cache=False):
 
     # abikan menit dan detik
     # ambil 3 jam terakhir untuk penanda user online (ubah dari 1 jam menjadi 3 jam (agar tampak lebih banyak))
+    
 
     # Update 1 Des 2022, 
     # Ambil 5 jam terakhir dan ip unique
     start_date = tgl + datetime.timedelta(hours=-5) # abaikan menit dan detik
-    start_date = datetime.datetime(start_date.year, start_date.month, start_date.day, start_date.hour, 0, 0) # abaikan menit dan detik
+    start_date = datetime.datetime(start_date.year, start_date.month, start_date.day, start_date.hour, 0, 0, tzinfo=tz) # abaikan menit dan detik
     # end_date = tgl
-    end_date = datetime.datetime(tgl.year, tgl.month, tgl.day, tgl.hour, 59, 59) # abaikan menit dan detik
+    end_date = datetime.datetime(tgl.year, tgl.month, tgl.day, tgl.hour, 59, 59, tzinfo=tz) # abaikan menit dan detik
     hit_online = Hit.objects.filter(hitcount_id=hitcount_id, \
         created__range=(start_date, end_date)).values('user_agent').order_by('user_agent').distinct()
 
