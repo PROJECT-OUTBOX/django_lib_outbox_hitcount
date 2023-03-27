@@ -14,24 +14,15 @@ from django.contrib.contenttypes.models import ContentType
 from django.contrib.sites.models import Site
 from django.core.exceptions import FieldDoesNotExist
 from django.db import transaction
-from django.db.models import F
+from django.db.models import F, Q
 from django.utils import timezone
 from hitcount.models import Hit
 
 from outbox_hitcount.models import *
 
+from .common_date import add_months, get_last_day_of_month
+
 # from urllib2 import urlopen
-
-def get_last_day_of_month(year, month):
-    return calendar.monthrange(year,month)[1]
-
-def add_months(sourcedate, months):
-    month = sourcedate.month - 1 + months
-    year = sourcedate.year + month // 12
-    month = month % 12 + 1
-    # day = min(sourcedate.day, calendar.monthrange(year,month)[1])
-    day = min(sourcedate.day, get_last_day_of_month(year, month))
-    return datetime.datetime(year, month, day)
 
 def get_geolocation_opt3(str_ip_address):
     '''
@@ -51,7 +42,8 @@ def get_geolocation_opt1(str_ip_address):
     '''
     result = os.popen("curl https://ipapi.co/"+ str_ip_address +"/json/").read() # 1000 per hari
     if result:
-        return (result['country_name'], result['city'])
+        tmp = json.loads(result)
+        return (tmp['country_name'], tmp['city'])
     return None    
 
 def get_geolocation_opt2(str_ip_address):
@@ -62,7 +54,7 @@ def get_geolocation_opt2(str_ip_address):
     if res:
         res = res.json()
         if res['success']:
-            return (res['country'], res['Seoul'])                    
+            return (res['country'], res['city'])                    
     return None 
 
 def get_geolocation_opt4(str_ip_address):
@@ -71,7 +63,8 @@ def get_geolocation_opt4(str_ip_address):
     '''        
     result = os.popen("curl http://api.db-ip.com/v2/free/"+ str_ip_address).read() # 1000 per hari
     if result:
-        return (result['countryName'], result['city'])
+        tmp = json.loads(result)
+        return (tmp['countryName'], tmp['city'])
     return None     
 
 # ada version yg belum bagus di split sehingga tersimpan 
@@ -92,7 +85,7 @@ def is_field_exists(model, field):
         try:
             # field = model._meta.get_field(field)
             for i in model._meta.get_fields():
-                if (not i.many_to_many) and  (i.name==field):
+                if (not i.many_to_many) and (i.name==field):
                     return True
 
         except FieldDoesNotExist:
@@ -452,7 +445,7 @@ def auto_get_location(request_per_minute=30, max_data=500):
     start_time = datetime.datetime.now()
     stop_time = start_time + timedelta(minutes=1)
 
-    hit_location = HitLocation.objects.filter(name='')[:max_data]
+    hit_location = HitLocation.objects.filter(Q(country='') | Q(city=''))[:max_data]
     count = 0
     waiting_list = [1, 2, 3, 4, 5, 6, 7]  # random list
     loc = 'loc1'
