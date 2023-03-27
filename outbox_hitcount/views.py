@@ -93,8 +93,10 @@ def get_statistic(site_id, is_cache=False):
         print('load from DB (' + tmp + ')')
 
         # Abaikan jam, ambil hari ini saja
-        # hit_today = Hit.objects.filter(hitcount_id=hitcount_id, created__year=tgl.year, created__month=tgl.month, created__day=tgl.day)
-        hit_today = Hit.objects.filter(hitcount_id=hitcount_id, created__date=tgl.date())
+        hit_today = Hit.objects.filter(hitcount_id=hitcount_id, created__year=tgl.year, created__month=tgl.month, created__day=tgl.day)
+        
+        # error expected string or bytes-like object!!! jika menggunakan cara di bawah ini
+        # hit_today = Hit.objects.filter(hitcount_id=hitcount_id, created__date=tgl.date())
         # print('hit_today',hit_today)
 
         tmp_cache = hit_today.count() if hit_today else 1
@@ -108,8 +110,8 @@ def get_statistic(site_id, is_cache=False):
         # Ini di UPDATE tiap pengujung datang
 
         # Abaikan jam, ambil hari ini saja
-        # hit_today = Hit.objects.filter(hitcount_id=hitcount_id, created__year=tgl.year, created__month=tgl.month, created__day=tgl.day)
-        hit_today = Hit.objects.filter(hitcount_id=hitcount_id, created__date=tgl.date)
+        hit_today = Hit.objects.filter(hitcount_id=hitcount_id, created__year=tgl.year, created__month=tgl.month, created__day=tgl.day)
+        # hit_today = Hit.objects.filter(hitcount_id=hitcount_id, created__date=tgl.date)
         # print('hit_today',hit_today)
         context[tmp] = hit_today.count() if hit_today else 1
 
