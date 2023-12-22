@@ -7,5 +7,5 @@ Provides outbox_hitcount version information.
 
 from incremental import Version
 
-__version__ = Version("outbox_hitcount", 1, 0, 11)
+__version__ = Version("outbox_hitcount", 1, 0, 12)
 __all__ = ["__version__"]

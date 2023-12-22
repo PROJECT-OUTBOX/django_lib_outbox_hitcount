@@ -1,10 +1,13 @@
+'''
+    view outbox hitcount
+'''
 import datetime
 
 import pytz
 from django.conf import settings
 from django.contrib.contenttypes.models import ContentType
 from django.core.cache import cache
-from django.shortcuts import render
+# from django.shortcuts import render
 from django.utils import timezone
 from hitcount.models import Hit, HitCount
 
@@ -90,7 +93,7 @@ def get_statistic(site_id, is_cache=False):
     tmp_cache = cache.get(tmp, version=site_id)
 
     if not (is_cache and tmp_cache is not None): # karena kondisi tmp_cache = 0 maka tetap masuk kondisi load from DB
-        print('load from DB (' + tmp + ')')
+        print(f'load from DB ({tmp})')
 
         # Abaikan jam, ambil hari ini saja
         hit_today = Hit.objects.filter(hitcount_id=hitcount_id, created__year=tgl.year, created__month=tgl.month, created__day=tgl.day)
@@ -116,7 +119,8 @@ def get_statistic(site_id, is_cache=False):
         context[tmp] = hit_today.count() if hit_today else 1
 
         selisih = context[tmp] - tmp_cache
-        print('selisih = ', selisih)
+        print(f'selisih {selisih}')
+
     # if hit_today:        
     #     context['hit_today'] = hit_today.count()
     # else:
@@ -132,7 +136,7 @@ def get_statistic(site_id, is_cache=False):
     # print('cache=',tmp_cache)
 
     if not (is_cache and tmp_cache is not None): # karena kondisi tmp_cache = 0 maka tetap masuk kondisi load from DB
-        print('load from DB (' + tmp + ')')
+        print(f'load from DB ({tmp})')
         # context[tmp] = tmp_cache
         # else:    
         # abaikan jam juga, ambil hari kemarin
@@ -158,7 +162,7 @@ def get_statistic(site_id, is_cache=False):
     tmp_cache = cache.get(tmp, version=site_id)
 
     if not (is_cache and tmp_cache is not None): # karena kondisi tmp_cache = 0 maka tetap masuk kondisi load from DB
-        print('load from DB (' + tmp + ')')
+        print(f'load from DB ({tmp})')
         # abaikan jam, ambil data dalam 1 minggu
         start_date, end_date = get_week_date(tgl.year, tgl.month, tgl.day)
         start_date = tz.localize(start_date)
@@ -177,14 +181,13 @@ def get_statistic(site_id, is_cache=False):
     tmp_cache += selisih # Tambahan ini saja
     context[tmp] = tmp_cache
 
-
     # 3. Minggu LALU
     # ----------------------------------------------------------------------
     tmp = 'hit_last_week'
     tmp_cache = cache.get(tmp, version=site_id)
 
     if not (is_cache and tmp_cache is not None): # karena kondisi tmp_cache = 0 maka tetap masuk kondisi load from DB
-        print('load from DB (' + tmp + ')')
+        print(f'load from DB ({tmp})')
         # abaikan jam, ambil data 1 minggu yg lalu
         # start_date = tgl + datetime.timedelta(days=-14)
         # start_date = datetime.date(start_date.year, start_date.month, start_date.day) # abaikan jam
@@ -212,7 +215,7 @@ def get_statistic(site_id, is_cache=False):
     tmp_cache = cache.get(tmp, version=site_id)
 
     if not (is_cache and tmp_cache is not None): # karena kondisi tmp_cache = 0 maka tetap masuk kondisi load from DB
-        print('load from DB (' + tmp + ')')
+        print('load from DB ({tmp})')
 
         # abaikan jam, ambil data bulan ini () (Bukan tgl sekarang sampai 1 bulan ke belakang, karena berbeda jumlah hari dalam 1 bulan)
         tmp_cache = Hit.objects.filter(hitcount_id=hitcount_id, \
@@ -231,7 +234,7 @@ def get_statistic(site_id, is_cache=False):
     tmp_cache = cache.get(tmp, version=site_id)
 
     if not (is_cache and tmp_cache is not None): # karena kondisi tmp_cache = 0 maka tetap masuk kondisi load from DB
-        print('load from DB (' + tmp + ')')
+        print('load from DB ({tmp})')
 
         # abaikan jam, ambil dari bulan lalu
         start_date = add_months(tgl,-1)
@@ -277,8 +280,7 @@ def get_statistic(site_id, is_cache=False):
     tmp_cache = cache.get(tmp, version=site_id)
 
     if not (is_cache and tmp_cache is not None): # karena kondisi tmp_cache = 0 maka tetap masuk kondisi load from DB
-        print('load from DB (' + tmp + ')')
-
+        print('load from DB ({tmp})')
 
         hit_count = HitCount.objects.filter(object_pk = site_id, content_type_id = content_type_id) #, domain=Domain)
         tmp_cache = hit_count[0].hits if hit_count else 1
