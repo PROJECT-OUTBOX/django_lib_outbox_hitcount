@@ -49,7 +49,14 @@ def get_geolocation_opt3(str_ip_address):
     # res = requests.get(url, timeout=60) # 45 request per minute
     res = get_response(url)
     if res:
-        res = res.json()
+        res = res.json()       
+
+        if 'success' not in res:
+            return None
+        if 'country' not in res:
+            return None
+        if 'city' not in res:
+            return None
         if res['status'] == 'success':
             return (res['country'], res['city'])
     return None
@@ -64,6 +71,11 @@ def get_geolocation_opt1(str_ip_address):
     result = get_popen(url)
     if result:
         tmp = json.loads(result)
+
+        if 'country_name' not in tmp:
+            return None
+        if 'city' not in tmp:
+            return None
         return (tmp['country_name'], tmp['city'])
     return None
 
@@ -76,6 +88,13 @@ def get_geolocation_opt2(str_ip_address):
     res = get_response(url)
     if res:
         res = res.json()
+
+        if 'success' not in res:
+            return None
+        if 'country' not in res:
+            return None
+        if 'city' not in res:
+            return None
         if res['success']:
             return (res['country'], res['city'])
     return None
@@ -90,6 +109,11 @@ def get_geolocation_opt4(str_ip_address):
     result = get_popen(url)
     if result:
         tmp = json.loads(result)
+        
+        if 'countryName' not in tmp:
+            return None
+        if 'city' not in tmp:
+            return None
         return (tmp['countryName'], tmp['city'])
     return None
 
@@ -236,7 +260,8 @@ def hitcount_insert_m2m_field(hit_count, browser, param_os, platform, ip_address
     # hit_count.location_count += 1
     # hit_count.save()
 
-def special_condition(object_pk, end_date, data):
+# def special_condition(object_pk, end_date, data):
+def special_condition(object_pk, data):
     '''
         Special condition:
         if site_id exists
@@ -253,17 +278,20 @@ def special_condition(object_pk, end_date, data):
         content_type = ContentType.objects.filter(model=i)
         if content_type:
             ct_class = content_type.get().model_class()
-            if is_field_exists(ct_class, 'site'):
-                field_exists = True
+            if is_field_exists(ct_class, 'site') and is_field_exists(ct_class, 'created_at'):
+                field_exists = True            
 
         if field_exists:
             obj = ct_class.objects.filter(
                 id=object_pk)  # cari site_id dari model
             site_id = None
+            end_date = None
+
             if obj:
                 site_id = obj.get().site_id
+                end_date = obj.get().created_at
 
-            if site_id:
+            if site_id and end_date:
                 # cari nama site dari site_id yg di dapat
                 site = Site.objects.filter(id=site_id)
                 if site:
@@ -293,10 +321,13 @@ def special_condition(object_pk, end_date, data):
 
                     hitcount_insert_m2m_field(**data)
                     hit_count.save()
-                    print(f'proses {i} saved')
+                    print(f'proses {i} saved [special condition]')
+        else:
+            print('[special condition] not found site id or created date')
 
 @transaction.atomic
-def do_summary(qs, end_date):
+# def do_summary(qs, end_date):
+def do_summary(qs):
     '''
         Jalankan proses summary
     '''
@@ -321,6 +352,8 @@ def do_summary(qs, end_date):
         # print()
 
         content_type = i.hitcount.content_type
+        end_date = i.created
+
         # content_type_id = content_type.id
         j += 1
         print(f"{j} of {count} object_pk {object_pk} model {content_type.model} hitcount_id {i.hitcount.id}")
@@ -368,7 +401,7 @@ def do_summary(qs, end_date):
                     'platform': platform,
                     'ip_address': ip_address
                 }
-                special_condition(object_pk, end_date, data)
+                special_condition(object_pk, data)
 
         # 1. jika ada field site_id, maka insert summary baru content_type = site
         if site_id:
@@ -445,12 +478,16 @@ def clear_summary_qs(qs):
         Clear query set yg berhasil di execute
     '''
     number_removed = qs.count()
-    qs.delete()
+    # qs.delete()
+    for i in qs:
+        i.delete()
+
     # self.stdout.write('Successfully removed %s Hits' % number_removed)
     print(f'Successfully removed {number_removed} Hits')
 
 # proses jumlah bulan, jika -1 maka semua di proses
-def auto_hit_summary(month_count=1):    # default 1 bulan saja, bukan semua data
+# def auto_hit_summary(month_count=1):    # default 1 bulan saja, bukan semua data
+def auto_hit_summary(max_data=500):    # default 1 bulan saja, bukan semua data
     '''
         Should be auto run in midnight
     '''
@@ -469,7 +506,7 @@ def auto_hit_summary(month_count=1):    # default 1 bulan saja, bukan semua data
     # first_data = qs[0]
 
     # month_count = 1 # looping sejumlah month_count, jika -1 berarti semua data
-    mcount = 5  # batasi looping 5 kali jika hasil query set kosong
+    mcount = 5 # batasi looping 5 kali jika hasil query set kosong
     # month = period.month
     # year = period.year
     # end_day_of_month = get_last_day_of_month(year, month)    # return hari
@@ -494,24 +531,32 @@ def auto_hit_summary(month_count=1):    # default 1 bulan saja, bukan semua data
         begin_date = tz.localize(begin_date)
         end_date = tz.localize(end_date)
 
-        qs = Hit.objects.filter(created__gte=begin_date, created__lte=end_date)
+        # qs = Hit.objects.filter(created__gte=begin_date, created__lte=end_date)
+
+        # !!!
+        # Pakai cara ke dua, cari data lebih besar dari grace period,
+        # order by created desc
+        # limit 500 data (sesuai parameter)
+        qs = Hit.objects.filter(created__gte=begin_date).order_by('-id')[:max_data]
+
         if not qs:
             mcount -= 1
         else:
-            if do_summary(qs, end_date):
+            if do_summary(qs):
                 # print('Begin clear summary')
                 # clear_summary_qs(qs) # pindahkan di dalam modul do_summary
-                print('Complete')
+                print(f'Complete {mcount}')
+                mcount -= 1
             else:
                 return False    # jika do_summary gagal di eksekusi, maka keluar looping
 
             # else:
             #     print('Not Complete')
 
-            if month_count > 0:
-                month_count -= 1
-            if month_count == 0:
-                break
+            # if month_count > 0:
+            #     month_count -= 1
+            # if month_count == 0:
+            #     break
 
     return True
 
@@ -536,24 +581,29 @@ def auto_get_location(request_per_minute=30, max_data=500):
         count += 1
         ip_address = i.ip_address
         if count <= request_per_minute:
-            location = get_geolocation_opt1(ip_address)
+            location = get_geolocation_opt1(ip_address)            
             loc = 'loc1'
+            print(f'location {location} from {loc}')
 
             if not location:
                 location = get_geolocation_opt2(ip_address)
                 loc = 'loc2'
+                print(f'location {location} from {loc}')
 
             if not location:
                 location = get_geolocation_opt3(ip_address)
                 loc = 'loc3'
+                print(f'location {location} from {loc}')
 
             if not location:
                 location = get_geolocation_opt4(ip_address)
                 loc = 'loc4'
+                print(f'location {location} from {loc}')
 
             if not location:
                 print(f'Location Not Found {ip_address}')
                 loc = 'none'
+                # print(f'location {location} from {loc}')
             else:
                 i.country = location[0]
                 i.city = location[1]
