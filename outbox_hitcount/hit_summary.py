@@ -321,7 +321,7 @@ def special_condition(object_pk, data):
 
                     hitcount_insert_m2m_field(**data)
                     hit_count.save()
-                    print(f'proses {i} saved [special condition]')
+                    # print(f'proses {i} saved [special condition]')
         else:
             print('[special condition] not found site id or created date')
 
@@ -356,7 +356,7 @@ def do_summary(qs):
 
         # content_type_id = content_type.id
         j += 1
-        print(f"{j} of {count} object_pk {object_pk} model {content_type.model} hitcount_id {i.hitcount.id}")
+        # print(f"{j} of {count} object_pk {object_pk} model {content_type.model} hitcount_id {i.hitcount.id}")
         site_id = None
 
         # dari content type ubah mejadi object
@@ -386,7 +386,7 @@ def do_summary(qs):
                     id=object_pk)  # cari site_id dari model
                 if obj:
                     site_id = obj.get().site_id
-                    print(f"site_id {site_id}")
+                    # print(f"site_id {site_id}")
                     mfound = True
                 else:
                     print(f"site_id {object_pk} tidak ditemukan!")
@@ -506,7 +506,7 @@ def auto_hit_summary(max_data=500):    # default 1 bulan saja, bukan semua data
     # first_data = qs[0]
 
     # month_count = 1 # looping sejumlah month_count, jika -1 berarti semua data
-    mcount = 5 # batasi looping 5 kali jika hasil query set kosong
+    mcount = 3 # batasi looping 5 kali jika hasil query set kosong
     # month = period.month
     # year = period.year
     # end_day_of_month = get_last_day_of_month(year, month)    # return hari
@@ -583,22 +583,22 @@ def auto_get_location(request_per_minute=30, max_data=500):
         if count <= request_per_minute:
             location = get_geolocation_opt1(ip_address)            
             loc = 'loc1'
-            print(f'location {location} from {loc}')
+            # print(f'location {location} from {loc}')
 
             if not location:
                 location = get_geolocation_opt2(ip_address)
                 loc = 'loc2'
-                print(f'location {location} from {loc}')
+                # print(f'location {location} from {loc}')
 
             if not location:
                 location = get_geolocation_opt3(ip_address)
                 loc = 'loc3'
-                print(f'location {location} from {loc}')
+                # print(f'location {location} from {loc}')
 
             if not location:
                 location = get_geolocation_opt4(ip_address)
                 loc = 'loc4'
-                print(f'location {location} from {loc}')
+                # print(f'location {location} from {loc}')
 
             if not location:
                 print(f'Location Not Found {ip_address}')
